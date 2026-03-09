@@ -65,6 +65,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
+# ── GET / (health check for readiness probe) ──────────────────────────────────
+
+@app.get("/")
+async def health():
+    return {"status": "ok"}
+
+
 # ── GET /api/chats ────────────────────────────────────────────────────────────
 
 @app.get("/api/chats")
