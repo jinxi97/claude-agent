@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The History of Silk</title>
+
+    <!-- === FONTS: Bodoni Moda (display serif) + DM Sans (body) === -->
+    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,700;0,6..96,900;1,6..96,400;1,6..96,700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+
+    <style>
+        /* =============================================
+           THEME: NOTEBOOK TABS
+           To customise: edit the :root variables below.
+           Main colors, fonts, and spacing are all here.
+           ============================================= */
+        :root {
+            /* Outer background (dark surround) */
+            --bg-outer:    #272220;
+            /* Paper card */
+            --bg-page:     #f9f6f0;
+            --bg-page-alt: #f3efe7;
+            /* Text */
+            --text-primary:   #1a1612;
+            --text-secondary: #665f58;
+            --text-light:     #9a948d;
+            /* Section tab colors */
+            --tab-origins:    #8dab9a;   /* sage */
+            --tab-making:     #e8b4aa;   /* blush */
+            --tab-routes:     #e8c97a;   /* gold */
+            --tab-medieval:   #9ab0c8;   /* slate */
+            --tab-today:      #c0b0d8;   /* lavender */
+            /* Accent (used for rule lines, highlights) */
+            --accent:         #8dab9a;
+            /* Typography */
+            --font-display:   'Bodoni Moda', serif;
+            --font-body:      'DM Sans', sans-serif;
+            /* Sizes — all clamp() */
+            --title-size:     clamp(1.8rem, 5.5vw, 4.2rem);
+            --h2-size:        clamp(1.3rem, 3.5vw, 2.6rem);
+            --h3-size:        clamp(1rem, 2.2vw, 1.5rem);
+            --body-size:      clamp(0.72rem, 1.35vw, 1rem);
+            --small-size:     clamp(0.6rem, 1vw, 0.78rem);
+            --eyebrow-size:   clamp(0.55rem, 0.95vw, 0.72rem);
+            /* Spacing */
+            --slide-padding:  clamp(1rem, 4vw, 4rem);
+            --content-gap:    clamp(0.5rem, 1.5vw, 1.5rem);
+            /* Animation */
+            --ease-expo:      cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* =============================================
+           VIEWPORT BASE (mandatory — do not remove)
+           ============================================= */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body { height: 100%; overflow-x: hidden; }
+
+        html {
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+            background: var(--bg-outer);
+        }
+
+        body { font-family: var(--font-body); }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            scroll-snap-align: start;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: var(--bg-outer);
+            background-image: radial-gradient(ellipse at 75% 15%, rgba(139,107,74,0.1) 0%, transparent 55%);
+        }
+
+        /* Breakpoints for short viewports */
+        @media (max-height: 700px) {
+            :root {
+                --title-size:  clamp(1.4rem, 4.5vw, 2.8rem);
+                --h2-size:     clamp(1.1rem, 3vw, 1.9rem);
+                --body-size:   clamp(0.65rem, 1.2vw, 0.88rem);
+            }
+        }
+        @media (max-height: 600px) {
+            :root {
+                --title-size:  clamp(1.2rem, 4vw, 2.2rem);
+                --h2-size:     clamp(1rem, 2.5vw, 1.5rem);
+                --body-size:   clamp(0.6rem, 1.1vw, 0.8rem);
+            }
+            .nav-dots, .keyboard-hint { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+            html { scroll-behavior: auto; }
+        }
+
+        /* =============================================
+           PAPER CARD — the core notebook element
+           Each slide uses a cream paper card floating
+           on the dark outer background.
+           ============================================= */
+        .paper {
+            position: relative; /* Required: anchors absolutely-positioned tabs, holes, rule */
+            width: min(80vw, 860px);
+            height: min(82vh, 600px);
+            background: var(--bg-page);
+            border-radius: 2px 4px 4px 2px;
+            box-shadow:
+                0 2px 4px rgba(0,0,0,0.12),
+                0 8px 24px rgba(0,0,0,0.22),
+                0 24px 64px rgba(0,0,0,0.32);
+            display: flex;
+            overflow: visible; /* allow tabs to overflow right */
+            flex-shrink: 0;
+            /* Paper texture via subtle repeating lines */
+            background-image: repeating-linear-gradient(
+                transparent,
+                transparent 27px,
+                rgba(200,192,178,0.18) 28px
+            );
+        }
+
+        /* Short viewport: shrink paper */
+        @media (max-height: 700px) {
+            .paper { height: min(86vh, 480px); }
+        }
+        @media (max-height: 600px) {
+            .paper { height: min(88vh, 380px); width: min(88vw, 700px); }
+        }
+
+        /* =============================================
+           BINDER HOLES — left edge decoration
+           ============================================= */
+        .holes {
+            position: absolute;
+            left: calc(-1 * clamp(12px, 1.8vw, 18px));
+            top: 0; bottom: 0;
+            width: clamp(12px, 1.8vw, 18px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding: clamp(24px, 5vh, 50px) 0;
+            z-index: 5;
+        }
+        .hole {
+            width: clamp(14px, 2vw, 20px);
+            height: clamp(14px, 2vw, 20px);
+            background: var(--bg-outer);
+            border-radius: 50%;
+            border: 1.5px solid rgba(200,190,175,0.4);
+            transform: translateX(-50%);
+        }
+
+        /* =============================================
+           VERTICAL RULE LINE — left margin guide
+           ============================================= */
+        .rule {
+            position: absolute;
+            left: clamp(44px, 7vw, 68px);
+            top: 0; bottom: 0;
+            width: 1px;
+            background: rgba(220,168,140,0.35);
+            z-index: 1;
+        }
+
+        /* =============================================
+           TABS — right edge section tabs
+           The "active" tab has full opacity + slight
+           width increase to look "pulled forward".
+           ============================================= */
+        .tabs {
+            position: absolute;
+            right: calc(-1 * clamp(28px, 3.8vw, 46px));
+            top: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: clamp(3px, 0.6vh, 7px);
+            z-index: 5;
+        }
+        .tab {
+            width: clamp(26px, 3.5vw, 44px);
+            border-radius: 0 4px 4px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            writing-mode: vertical-rl;
+            font-family: var(--font-body);
+            font-size: clamp(0.46rem, 0.85vh, 0.65rem);
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(30,24,18,0.55);
+            opacity: 0.55;
+            transition: opacity 0.3s, width 0.3s;
+            cursor: default;
+            user-select: none;
+        }
+        .tab.active {
+            opacity: 1;
+            color: rgba(30,24,18,0.8);
+            box-shadow: 2px 0 8px rgba(0,0,0,0.18);
+            width: clamp(30px, 4vw, 50px);
+        }
+        .tab-origins  { height: clamp(38px, 7vh, 72px);  background: var(--tab-origins); }
+        .tab-making   { height: clamp(56px, 10vh, 105px); background: var(--tab-making); }
+        .tab-routes   { height: clamp(76px, 14vh, 140px); background: var(--tab-routes); }
+        .tab-medieval { height: clamp(56px, 10vh, 105px); background: var(--tab-medieval); }
+        .tab-today    { height: clamp(38px, 7vh, 72px);  background: var(--tab-today); }
+
+        /* =============================================
+           PAPER CONTENT AREA
+           Left-padded to sit after the rule line.
+           All text lives inside .paper-content.
+           ============================================= */
+        .paper-content {
+            position: relative;
+            z-index: 2;
+            flex: 1;
+            padding: clamp(1.2rem, 4vh, 3rem) clamp(1.2rem, 3.5vw, 3rem) clamp(1rem, 3vh, 2.5rem) clamp(3.5rem, 8vw, 6rem);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow: hidden;
+            max-height: 100%;
+        }
+
+        /* =============================================
+           TYPOGRAPHY
+           ============================================= */
+        .eyebrow {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.4rem, 1vw, 0.75rem);
+            margin-bottom: clamp(0.5rem, 1.5vh, 1.2rem);
+            font-size: var(--eyebrow-size);
+            font-weight: 500;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+        .eyebrow-dash {
+            width: clamp(16px, 3vw, 32px);
+            height: 1px;
+            background: var(--accent);
+            flex-shrink: 0;
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.05;
+            margin-bottom: clamp(0.6rem, 2vh, 1.4rem);
+        }
+        h1 em { font-style: italic; font-weight: 400; }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.1;
+            margin-bottom: clamp(0.5rem, 1.5vh, 1.2rem);
+        }
+        h2 em { font-style: italic; font-weight: 400; }
+
+        .subtitle {
+            font-family: var(--font-body);
+            font-size: clamp(0.75rem, 1.5vw, 1.05rem);
+            font-weight: 300;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            max-width: 500px;
+        }
+
+        /* =============================================
+           BULLET LIST
+           Standard content list with styled markers
+           ============================================= */
+        .bullet-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.35rem, 1vh, 0.85rem);
+            margin-top: clamp(0.25rem, 0.8vh, 0.6rem);
+        }
+        .bullet-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: clamp(0.5rem, 1.2vw, 0.9rem);
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+        .bullet-list li::before {
+            content: '';
+            width: clamp(5px, 0.8vw, 8px);
+            height: clamp(5px, 0.8vw, 8px);
+            background: var(--accent);
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 0.42em;
+        }
+        .bullet-list strong {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* =============================================
+           DIVIDER — thin rule between sections
+           ============================================= */
+        .divider {
+            width: clamp(30px, 6vw, 60px);
+            height: 1px;
+            background: var(--accent);
+            opacity: 0.5;
+            margin: clamp(0.5rem, 1.2vh, 1rem) 0;
+            flex-shrink: 0;
+        }
+
+        /* =============================================
+           PULL QUOTE — indented highlighted quote
+           ============================================= */
+        .pull-quote {
+            border-left: 3px solid var(--accent);
+            padding: clamp(0.5rem, 1.2vh, 1rem) clamp(0.75rem, 2vw, 1.5rem);
+            margin: clamp(0.5rem, 1.5vh, 1.2rem) 0;
+            background: rgba(141,171,154,0.07);
+            border-radius: 0 3px 3px 0;
+        }
+        .pull-quote p {
+            font-family: var(--font-display);
+            font-style: italic;
+            font-size: clamp(0.78rem, 1.5vw, 1.1rem);
+            color: var(--text-primary);
+            line-height: 1.55;
+        }
+        .pull-quote cite {
+            display: block;
+            margin-top: clamp(0.25rem, 0.6vh, 0.5rem);
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            font-style: normal;
+            color: var(--text-light);
+            letter-spacing: 0.08em;
+        }
+
+        /* =============================================
+           STAT ROW — horizontal stat blocks
+           ============================================= */
+        .stat-row {
+            display: flex;
+            gap: clamp(0.75rem, 2vw, 2rem);
+            flex-wrap: wrap;
+            margin: clamp(0.5rem, 1.5vh, 1.2rem) 0;
+        }
+        .stat {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15em;
+        }
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: clamp(1.4rem, 4vw, 2.8rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+        .stat-label {
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            color: var(--text-light);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        /* =============================================
+           TWO-COLUMN GRID — for feature slides
+           ============================================= */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(0.75rem, 2vw, 2rem);
+            margin-top: clamp(0.4rem, 1.2vh, 1rem);
+        }
+        .col-block {
+            background: var(--bg-page-alt);
+            border-radius: 3px;
+            padding: clamp(0.5rem, 1.5vw, 1rem);
+            border-top: 2px solid var(--accent);
+        }
+        .col-block h3 {
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            font-weight: 500;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: clamp(0.3rem, 0.8vh, 0.6rem);
+        }
+        .col-block ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.2rem, 0.5vh, 0.4rem);
+        }
+        .col-block ul li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.45;
+            padding-left: 0.8em;
+            position: relative;
+        }
+        .col-block ul li::before {
+            content: '·';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        /* =============================================
+           SLIDE NUMBER — bottom-right of paper
+           ============================================= */
+        .slide-num {
+            position: absolute;
+            bottom: clamp(0.6rem, 1.5vh, 1.2rem);
+            right: clamp(1rem, 2.5vw, 2rem);
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            color: var(--text-light);
+            letter-spacing: 0.1em;
+            z-index: 3;
+        }
+
+        /* =============================================
+           CHAPTER LABEL — top-right of paper content
+           ============================================= */
+        .chapter-label {
+            position: absolute;
+            top: clamp(0.6rem, 1.5vh, 1.2rem);
+            right: clamp(1rem, 2.5vw, 2rem);
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            color: var(--text-light);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            z-index: 3;
+        }
+
+        /* =============================================
+           REVEAL ANIMATIONS
+           Triggered when slide gets .visible class
+           via IntersectionObserver (see JS below).
+           ============================================= */
+        .reveal {
+            opacity: 0;
+            transform: translateY(22px);
+            transition: opacity 0.65s var(--ease-expo),
+                        transform 0.65s var(--ease-expo);
+        }
+        .slide.visible .reveal         { opacity: 1; transform: translateY(0); }
+        .slide.visible .reveal:nth-child(1) { transition-delay: 0.05s; }
+        .slide.visible .reveal:nth-child(2) { transition-delay: 0.15s; }
+        .slide.visible .reveal:nth-child(3) { transition-delay: 0.25s; }
+        .slide.visible .reveal:nth-child(4) { transition-delay: 0.35s; }
+        .slide.visible .reveal:nth-child(5) { transition-delay: 0.45s; }
+        .slide.visible .reveal:nth-child(6) { transition-delay: 0.5s; }
+
+        /* Paper card entrance */
+        .paper-reveal {
+            opacity: 0;
+            transform: translateY(28px) scale(0.98);
+            transition: opacity 0.75s var(--ease-expo),
+                        transform 0.75s var(--ease-expo);
+        }
+        .slide.visible .paper-reveal {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* Reveal-left for left-panel items */
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: opacity 0.6s var(--ease-expo),
+                        transform 0.6s var(--ease-expo);
+        }
+        .slide.visible .reveal-left { opacity: 1; transform: translateX(0); }
+        .slide.visible .reveal-left:nth-child(1) { transition-delay: 0.1s; }
+        .slide.visible .reveal-left:nth-child(2) { transition-delay: 0.2s; }
+        .slide.visible .reveal-left:nth-child(3) { transition-delay: 0.3s; }
+        .slide.visible .reveal-left:nth-child(4) { transition-delay: 0.4s; }
+
+        /* =============================================
+           PROGRESS BAR — top of page
+           ============================================= */
+        .progress-bar {
+            position: fixed;
+            top: 0; left: 0;
+            height: 2px;
+            background: var(--tab-routes);
+            z-index: 9999;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        /* =============================================
+           NAV DOTS — bottom center
+           ============================================= */
+        .nav-dots {
+            position: fixed;
+            bottom: clamp(0.75rem, 2vh, 1.5rem);
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: clamp(4px, 0.8vw, 8px);
+            z-index: 9999;
+        }
+        .nav-dot {
+            width: clamp(5px, 0.7vw, 7px);
+            height: clamp(5px, 0.7vw, 7px);
+            border-radius: 50%;
+            background: rgba(200,190,175,0.3);
+            border: 1px solid rgba(200,190,175,0.5);
+            cursor: pointer;
+            transition: background 0.3s, transform 0.3s;
+        }
+        .nav-dot.active {
+            background: rgba(200,190,175,0.9);
+            transform: scale(1.3);
+        }
+
+        /* =============================================
+           KEYBOARD HINT — bottom right
+           ============================================= */
+        .keyboard-hint {
+            position: fixed;
+            bottom: clamp(0.75rem, 2vh, 1.5rem);
+            right: clamp(1rem, 2.5vw, 2rem);
+            font-family: var(--font-body);
+            font-size: clamp(0.5rem, 0.8vw, 0.62rem);
+            letter-spacing: 0.15em;
+            color: rgba(200,190,175,0.35);
+            text-transform: uppercase;
+            z-index: 9999;
+        }
+
+        /* =============================================
+           INLINE EDIT — hover top-left to reveal
+           Controlled entirely by JS (no CSS ~ trick).
+           ============================================= */
+        .edit-hotzone {
+            position: fixed; top: 0; left: 0;
+            width: 90px; height: 90px;
+            z-index: 10000;
+            cursor: pointer;
+        }
+        .edit-toggle {
+            position: fixed;
+            top: clamp(0.6rem, 1.5vh, 1rem);
+            left: clamp(0.6rem, 1.5vw, 1rem);
+            background: rgba(249,246,240,0.92);
+            border: 1px solid rgba(200,190,175,0.7);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            letter-spacing: 0.12em;
+            padding: 0.4em 0.9em;
+            border-radius: 3px;
+            cursor: pointer;
+            z-index: 10001;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, background 0.2s;
+            text-transform: uppercase;
+        }
+        .edit-toggle.show,
+        .edit-toggle.active { opacity: 1; pointer-events: auto; }
+        .edit-toggle.active {
+            background: var(--tab-origins);
+            border-color: transparent;
+            color: rgba(30,24,18,0.85);
+        }
+        .edit-toggle:hover { background: #eee8dc; }
+
+        /* Editable text in edit mode */
+        body.edit-mode [contenteditable] {
+            outline: none;
+            border-bottom: 1.5px dashed var(--tab-origins);
+            cursor: text;
+            transition: background 0.2s;
+        }
+        body.edit-mode [contenteditable]:focus {
+            background: rgba(141,171,154,0.1);
+            border-radius: 2px;
+        }
+
+        /* Edit mode indicator ring */
+        body.edit-mode .paper {
+            box-shadow:
+                0 2px 4px rgba(0,0,0,0.12),
+                0 8px 24px rgba(0,0,0,0.22),
+                0 24px 64px rgba(0,0,0,0.32),
+                0 0 0 2px var(--tab-origins);
+        }
+
+        /* =============================================
+           TITLE SLIDE SPECIFIC
+           ============================================= */
+        .title-slide .paper-content {
+            justify-content: center;
+        }
+        .title-tagline {
+            font-family: var(--font-body);
+            font-size: clamp(0.7rem, 1.3vw, 0.92rem);
+            font-weight: 300;
+            font-style: italic;
+            color: var(--text-light);
+            margin-top: clamp(0.3rem, 0.8vh, 0.6rem);
+            max-width: 380px;
+            line-height: 1.6;
+        }
+        .title-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-top: clamp(1rem, 2.5vh, 2rem);
+        }
+        .title-meta-line {
+            width: clamp(20px, 4vw, 36px);
+            height: 1px;
+            background: var(--tab-routes);
+            opacity: 0.7;
+        }
+        .title-meta span {
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--tab-routes);
+        }
+
+        /* =============================================
+           CONCLUSION SLIDE SPECIFIC
+           ============================================= */
+        .takeaway-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(0.4rem, 1.2vw, 1rem);
+            margin-top: clamp(0.4rem, 1.2vh, 1rem);
+        }
+        .takeaway {
+            background: var(--bg-page-alt);
+            border-radius: 3px;
+            padding: clamp(0.5rem, 1.3vw, 1rem);
+            border-left: 3px solid var(--accent);
+        }
+        .takeaway p {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .takeaway strong {
+            display: block;
+            font-family: var(--font-display);
+            font-size: clamp(0.85rem, 1.5vw, 1.1rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25em;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- === PROGRESS BAR === -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- === NAV DOTS === -->
+    <nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+
+    <!-- === KEYBOARD HINT === -->
+    <div class="keyboard-hint">↑ ↓ to navigate</div>
+
+    <!-- === INLINE EDIT CONTROLS === -->
+    <div class="edit-hotzone" id="editHotzone" title="Edit mode"></div>
+    <button class="edit-toggle" id="editToggle" aria-label="Toggle edit mode">✏ Edit</button>
+
+
+    <!-- =====================================================================
+         SLIDES
+         15 slides covering the full history of silk.
+         Each slide: data-section attribute determines which tab is active.
+         Sections: origins | making | routes | medieval | today
+         ===================================================================== -->
+
+    <!-- === SLIDE 1: TITLE === -->
+    <section class="slide title-slide" data-section="origins" aria-label="Title slide">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="eyebrow reveal"><div class="eyebrow-dash"></div>5,000 Years of Luxury &amp; Trade</div>
+                <h1 class="reveal">The History<br>of <em>Silk</em></h1>
+                <div class="divider reveal"></div>
+                <p class="subtitle reveal">From an empress's garden in ancient China to the global marketplace — the story of the world's most coveted fabric and the thread that wove civilisations together.</p>
+                <div class="title-meta reveal">
+                    <div class="title-meta-line"></div>
+                    <span>Teaching Edition · 15 Slides</span>
+                </div>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins active">Origins</div>
+                <div class="tab tab-making">Making</div>
+                <div class="tab tab-routes">Routes</div>
+                <div class="tab tab-medieval">Medieval</div>
+                <div class="tab tab-today">Today</div>
+            </div>
+            <div class="slide-num">01 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 2: THE LEGEND === -->
+    <section class="slide" data-section="origins" aria-label="The legend of discovery">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">Origins</div>
+                <div class="eyebrow reveal"><div class="eyebrow-dash"></div>China · ~2700 BCE</div>
+                <h2 class="reveal">A Cocoon Falls<br><em>Into Tea</em></h2>
+                <div class="divider reveal"></div>
+                <p class="subtitle reveal" style="margin-bottom: clamp(0.5rem, 1.5vh, 1.2rem);">
+                    Legend holds that Empress <strong>Leizu</strong> sat beneath a mulberry tree when a silkworm cocoon fell into her cup of hot water. As she pulled it free, a shimmering, unbroken thread began to unspool — and silk was born.
+                </p>
+                <div class="pull-quote reveal">
+                    <p>"The earliest physical evidence of silk — woven fabric fragments — dates to around 3,630 BCE, found in Henan Province, China."</p>
+                    <cite>Archaeological Record, Jiahu Site</cite>
+                </div>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins active">Origins</div>
+                <div class="tab tab-making">Making</div>
+                <div class="tab tab-routes">Routes</div>
+                <div class="tab tab-medieval">Medieval</div>
+                <div class="tab tab-today">Today</div>
+            </div>
+            <div class="slide-num">02 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 3: SILK IN ANCIENT CHINA === -->
+    <section class="slide" data-section="origins" aria-label="Silk in ancient China">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">Origins</div>
+                <div class="eyebrow reveal"><div class="eyebrow-dash"></div>Imperial China</div>
+                <h2 class="reveal">More Than<br><em>Fabric</em></h2>
+                <div class="divider reveal"></div>
+                <ul class="bullet-list reveal">
+                    <li><strong>Currency &amp; Status:</strong> Silk was used to pay soldiers' wages, taxes, and tributes — often more trusted than metal coins.</li>
+                    <li><strong>Imperial Monopoly:</strong> Only the Emperor and highest nobility were permitted to wear yellow silk; colours denoted social rank.</li>
+                    <li><strong>Military Use:</strong> Silk undergarments were worn beneath armour — arrows could be pulled free without widening wounds.</li>
+                    <li><strong>Spiritual Role:</strong> Silk was offered to ancestors in ceremonies and used to wrap sacred scrolls and ritual objects.</li>
+                </ul>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins active">Origins</div>
+                <div class="tab tab-making">Making</div>
+                <div class="tab tab-routes">Routes</div>
+                <div class="tab tab-medieval">Medieval</div>
+                <div class="tab tab-today">Today</div>
+            </div>
+            <div class="slide-num">03 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 4: WHAT IS SILK? === -->
+    <section class="slide" data-section="making" aria-label="What is silk?">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">Sericulture</div>
+                <div class="eyebrow reveal" style="--accent: var(--tab-making);"><div class="eyebrow-dash" style="background: var(--tab-making)"></div>The Fibre</div>
+                <h2 class="reveal">The <em>Miracle</em> Thread</h2>
+                <div class="divider reveal" style="background: var(--tab-making); opacity: 0.7;"></div>
+                <div class="stat-row reveal">
+                    <div class="stat"><div class="stat-number">900m</div><div class="stat-label">Single cocoon thread</div></div>
+                    <div class="stat"><div class="stat-number">3,000</div><div class="stat-label">Cocoons per kg of silk</div></div>
+                    <div class="stat"><div class="stat-number">1 mm</div><div class="stat-label">Filament diameter</div></div>
+                </div>
+                <ul class="bullet-list reveal">
+                    <li>Produced by <strong>Bombyx mori</strong> (the domesticated silkworm) feeding exclusively on mulberry leaves.</li>
+                    <li>Made of <strong>fibroin</strong> protein wrapped in <strong>sericin</strong> gum — stronger than steel by weight.</li>
+                    <li>Naturally <strong>temperature-regulating</strong>: warm in winter, cool in summer — making it priceless for ancient elites.</li>
+                </ul>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins">Origins</div>
+                <div class="tab tab-making active">Making</div>
+                <div class="tab tab-routes">Routes</div>
+                <div class="tab tab-medieval">Medieval</div>
+                <div class="tab tab-today">Today</div>
+            </div>
+            <div class="slide-num">04 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 5: CHINA'S GUARDED SECRET === -->
+    <section class="slide" data-section="making" aria-label="China's guarded secret">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">Sericulture</div>
+                <div class="eyebrow reveal" style="--accent: var(--tab-making);"><div class="eyebrow-dash" style="background: var(--tab-making)"></div>~3000 Years of Secrecy</div>
+                <h2 class="reveal">China's Most<br><em>Guarded Secret</em></h2>
+                <div class="divider reveal" style="background: var(--tab-making); opacity: 0.7;"></div>
+                <ul class="bullet-list reveal">
+                    <li><strong>Death Penalty:</strong> Anyone caught smuggling silkworm eggs or mulberry seeds out of China faced execution under imperial law.</li>
+                    <li><strong>Knowledge Chain:</strong> Sericulture knowledge was passed only within families and imperial workshops for millennia.</li>
+                    <li><strong>Economic Power:</strong> This monopoly gave China extraordinary leverage in trade — the world paid China's price.</li>
+                    <li><strong>The Secret Held:</strong> China maintained its monopoly on silk production for over 2,000 years — until 552 CE.</li>
+                </ul>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins">Origins</div>
+                <div class="tab tab-making active">Making</div>
+                <div class="tab tab-routes">Routes</div>
+                <div class="tab tab-medieval">Medieval</div>
+                <div class="tab tab-today">Today</div>
+            </div>
+            <div class="slide-num">05 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 6: HAN DYNASTY — OPENING THE WORLD === -->
+    <section class="slide" data-section="routes" aria-label="Han Dynasty opens the world">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">The Silk Road</div>
+                <div class="eyebrow reveal" style="--accent: var(--tab-routes);"><div class="eyebrow-dash" style="background: var(--tab-routes)"></div>Han Dynasty · 206 BCE – 220 CE</div>
+                <h2 class="reveal"><em>Opening</em> the World</h2>
+                <div class="divider reveal" style="background: var(--tab-routes); opacity: 0.7;"></div>
+                <p class="subtitle reveal" style="margin-bottom: clamp(0.4rem, 1.2vh, 1rem);">Emperor Wu sent diplomat <strong>Zhang Qian</strong> westward in 138 BCE to forge military alliances — but what he returned with was far more valuable: knowledge of rich civilisations hungry for Chinese goods.</p>
+                <ul class="bullet-list reveal">
+                    <li>Zhang Qian reached <strong>Bactria (modern Afghanistan)</strong> and encountered Greek-influenced kingdoms trading with Persia and Rome.</li>
+                    <li>He reported back on <strong>Fergana horses</strong>, exotic goods, and the vast market potential to the west.</li>
+                    <li>The Han began sending diplomatic caravans — and with them, <strong>silk</strong> flowed westward for the first time officially.</li>
+                </ul>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins">Origins</div>
+                <div class="tab tab-making">Making</div>
+                <div class="tab tab-routes active">Routes</div>
+                <div class="tab tab-medieval">Medieval</div>
+                <div class="tab tab-today">Today</div>
+            </div>
+            <div class="slide-num">06 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 7: THE SILK ROAD === -->
+    <section class="slide" data-section="routes" aria-label="The Silk Road">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">The Silk Road</div>
+                <div class="eyebrow reveal" style="--accent: var(--tab-routes);"><div class="eyebrow-dash" style="background: var(--tab-routes)"></div>~130 BCE – 1453 CE</div>
+                <h2 class="reveal">The Road That<br><em>Wasn't One Road</em></h2>
+                <div class="stat-row reveal">
+                    <div class="stat"><div class="stat-number">7,000<span style="font-size:0.5em">km</span></div><div class="stat-label">Total Route Length</div></div>
+                    <div class="stat"><div class="stat-number">1,500<span style="font-size:0.5em">yrs</span></div><div class="stat-label">Active Trade Period</div></div>
+                    <div class="stat"><div class="stat-number">3</div><div class="stat-label">Main Route Branches</div></div>
+                </div>
+                <ul class="bullet-list reveal">
+                    <li>Not a single path, but a <strong>web of overlapping caravan routes</strong> linking China to the Mediterranean via Central Asia.</li>
+                    <li>Key nodes: <strong>Chang'an</strong> (China) → Dunhuang → Samarkand → Merv → Ctesiphon → <strong>Antioch / Alexandria</strong>.</li>
+                    <li>Most merchants travelled <strong>short segments</strong>, passing goods hand-to-hand — few ever made the full journey.</li>
+                    <li>Named "Silk Road" only in <strong>1877</strong> by German geographer Ferdinand von Richthofen.</li>
+                </ul>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins">Origins</div>
+                <div class="tab tab-making">Making</div>
+                <div class="tab tab-routes active">Routes</div>
+                <div class="tab tab-medieval">Medieval</div>
+                <div class="tab tab-today">Today</div>
+            </div>
+            <div class="slide-num">07 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 8: MORE THAN SILK === -->
+    <section class="slide" data-section="routes" aria-label="More than silk traveled the road">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">The Silk Road</div>
+                <div class="eyebrow reveal" style="--accent: var(--tab-routes);"><div class="eyebrow-dash" style="background: var(--tab-routes)"></div>The World's First Global Network</div>
+                <h2 class="reveal">More Than<br><em>Silk</em> Traveled</h2>
+                <div class="two-col reveal">
+                    <div class="col-block" style="border-color: var(--tab-routes);">
+                        <h3>Eastward →</h3>
+                        <ul>
+                            <li>Glass, gold &amp; silver</li>
+                            <li>Wool &amp; linen textiles</li>
+                            <li>Grapes &amp; wine culture</li>
+                            <li>Buddhism &amp; Islam</li>
+                            <li>Roman coins &amp; art</li>
+                        </ul>
+                    </div>
+                    <div class="col-block" style="border-color: var(--tab-making);">
+                        <h3>← Westward</h3>
+                        <ul>
+                            <li>Silk &amp; porcelain</li>
+                            <li>Spices &amp; tea</li>
+                            <li>Paper &amp; printing</li>
+                            <li>Gunpowder &amp; compass</li>
+                            <li>The Black Death (1346)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins">Origins</div>
+                <div class="tab tab-making">Making</div>
+                <div class="tab tab-routes active">Routes</div>
+                <div class="tab tab-medieval">Medieval</div>
+                <div class="tab tab-today">Today</div>
+            </div>
+            <div class="slide-num">08 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 9: ROME'S SILK OBSESSION === -->
+    <section class="slide" data-section="routes" aria-label="Rome's silk obsession">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">The Silk Road</div>
+                <div class="eyebrow reveal" style="--accent: var(--tab-routes);"><div class="eyebrow-dash" style="background: var(--tab-routes)"></div>Roman Empire · 1st Century CE</div>
+                <h2 class="reveal">Rome's<br><em>Silk Fever</em></h2>
+                <div class="divider reveal" style="background: var(--tab-routes); opacity: 0.7;"></div>
+                <div class="pull-quote reveal" style="border-color: var(--tab-routes);">
+                    <p>"China sends us silk and takes our gold in return — silk costs its weight in gold in Rome's markets."</p>
+                    <cite>Pliny the Elder, Naturalis Historia, 77 CE</cite>
+                </div>
+                <ul class="bullet-list reveal">
+                    <li>Roman demand for silk was so enormous it created a <strong>chronic trade deficit</strong> with the East, draining Rome's gold reserves.</li>
+                    <li>Emperor <strong>Tiberius</strong> banned men from wearing silk (14–37 CE) as a public morality measure — and to stop the wealth drain.</li>
+                    <li>Silk cloth was sold by weight in Roman markets, equating to <strong>gold</strong> in value per ounce.</li>
+                </ul>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins">Origins</div>
+                <div class="tab tab-making">Making</div>
+                <div class="tab tab-routes active">Routes</div>
+                <div class="tab tab-medieval">Medieval</div>
+                <div class="tab tab-today">Today</div>
+            </div>
+            <div class="slide-num">09 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 10: BYZANTIUM — THE GREAT HEIST === -->
+    <section class="slide" data-section="medieval" aria-label="Byzantium steals the secret">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">Medieval</div>
+                <div class="eyebrow reveal" style="--accent: var(--tab-medieval);"><div class="eyebrow-dash" style="background: var(--tab-medieval)"></div>Constantinople · 552 CE</div>
+                <h2 class="reveal">The Great<br><em>Silk Heist</em></h2>
+                <div class="divider reveal" style="background: var(--tab-medieval); opacity: 0.7;"></div>
+                <p class="subtitle reveal" style="margin-bottom: clamp(0.4rem, 1.2vh, 1rem);">
+                    Emperor <strong>Justinian I</strong>, frustrated by Persian middlemen controlling the silk trade, sent two Nestorian monks into Central Asia with a secret mission: smuggle silkworm eggs and mulberry seeds back to Constantinople.
+                </p>
+                <ul class="bullet-list reveal">
+                    <li>The monks hid the eggs inside <strong>hollow walking canes</strong> — and succeeded.</li>
+                    <li>Byzantium established its own imperial silk industry, ending China's 2,000-year monopoly on production.</li>
+                    <li>Byzantine silk became famous for its intricate <strong>purple and gold woven patterns</strong>, reserved for royalty.</li>
+                </ul>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins">Origins</div>
+                <div class="tab tab-making">Making</div>
+                <div class="tab tab-routes">Routes</div>
+                <div class="tab tab-medieval active">Medieval</div>
+                <div class="tab tab-today">Today</div>
+            </div>
+            <div class="slide-num">10 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 11: ISLAMIC GOLDEN AGE === -->
+    <section class="slide" data-section="medieval" aria-label="Islamic Golden Age of silk">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">Medieval</div>
+                <div class="eyebrow reveal" style="--accent: var(--tab-medieval);"><div class="eyebrow-dash" style="background: var(--tab-medieval)"></div>Islamic World · 7th – 13th Century</div>
+                <h2 class="reveal">Silk &amp; the<br><em>Islamic Golden Age</em></h2>
+                <div class="divider reveal" style="background: var(--tab-medieval); opacity: 0.7;"></div>
+                <ul class="bullet-list reveal">
+                    <li><strong>Persian Inheritance:</strong> Arab caliphates adopted Sassanid Persian silk-weaving traditions, producing legendary <em>tiraz</em> textiles inscribed with sacred texts.</li>
+                    <li><strong>Baghdad &amp; Cairo</strong> became global centres of textile trade, refining dyeing techniques and damask weaving patterns.</li>
+                    <li><strong>Al-Andalus (Spain):</strong> Moorish weavers brought advanced silk techniques to Europe through silk workshops in Almería and Granada.</li>
+                    <li><strong>Theological Tension:</strong> Islamic law generally prohibited men from wearing pure silk — driving innovation in silk-cotton blends.</li>
+                </ul>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins">Origins</div>
+                <div class="tab tab-making">Making</div>
+                <div class="tab tab-routes">Routes</div>
+                <div class="tab tab-medieval active">Medieval</div>
+                <div class="tab tab-today">Today</div>
+            </div>
+            <div class="slide-num">11 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 12: VENICE AND EUROPE === -->
+    <section class="slide" data-section="medieval" aria-label="Venice and the European silk trade">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">Medieval</div>
+                <div class="eyebrow reveal" style="--accent: var(--tab-medieval);"><div class="eyebrow-dash" style="background: var(--tab-medieval)"></div>Europe · 13th – 17th Century</div>
+                <h2 class="reveal">The Merchants<br>of <em>Venice</em></h2>
+                <div class="divider reveal" style="background: var(--tab-medieval); opacity: 0.7;"></div>
+                <ul class="bullet-list reveal">
+                    <li>The <strong>Crusades</strong> (1095–1291) introduced European nobles to luxurious Eastern silks, creating insatiable demand.</li>
+                    <li><strong>Venice &amp; Genoa</strong> controlled Mediterranean silk trading, growing fabulously wealthy as intermediaries between East and West.</li>
+                    <li>Italian city-states (<strong>Lucca, Florence, Venice</strong>) mastered silk weaving in the 13th–14th centuries, establishing European production.</li>
+                    <li><strong>Lyon, France</strong> became Europe's silk capital by the 16th century — a dominance it holds to this day in haute couture.</li>
+                </ul>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins">Origins</div>
+                <div class="tab tab-making">Making</div>
+                <div class="tab tab-routes">Routes</div>
+                <div class="tab tab-medieval active">Medieval</div>
+                <div class="tab tab-today">Today</div>
+            </div>
+            <div class="slide-num">12 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 13: THE INDUSTRIAL REVOLUTION === -->
+    <section class="slide" data-section="today" aria-label="Industrial Revolution and silk">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">Modern Era</div>
+                <div class="eyebrow reveal" style="--accent: var(--tab-today);"><div class="eyebrow-dash" style="background: var(--tab-today)"></div>18th – 19th Century</div>
+                <h2 class="reveal">The Machine<br><em>Enters the Loom</em></h2>
+                <div class="divider reveal" style="background: var(--tab-today); opacity: 0.7;"></div>
+                <ul class="bullet-list reveal">
+                    <li><strong>Jacquard Loom (1804):</strong> Joseph-Marie Jacquard's punch-card controlled loom revolutionised patterned silk weaving — an invention that later inspired the first computers.</li>
+                    <li><strong>Power Looms</strong> increased production speed 40x but sparked violent riots among silk weavers in Lyon and across England.</li>
+                    <li><strong>Synthetic Competition:</strong> The invention of nylon (1938) and polyester offered cheap alternatives, devastating natural silk markets worldwide.</li>
+                    <li><strong>Japan's Rise:</strong> Japan industrialised sericulture in the Meiji era, briefly overtaking China as the world's leading silk exporter.</li>
+                </ul>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins">Origins</div>
+                <div class="tab tab-making">Making</div>
+                <div class="tab tab-routes">Routes</div>
+                <div class="tab tab-medieval">Medieval</div>
+                <div class="tab tab-today active">Today</div>
+            </div>
+            <div class="slide-num">13 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 14: SILK TODAY === -->
+    <section class="slide" data-section="today" aria-label="Silk in the 21st century">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">Modern Era</div>
+                <div class="eyebrow reveal" style="--accent: var(--tab-today);"><div class="eyebrow-dash" style="background: var(--tab-today)"></div>21st Century</div>
+                <h2 class="reveal">Silk in the<br><em>Modern World</em></h2>
+                <div class="stat-row reveal">
+                    <div class="stat"><div class="stat-number">80<span style="font-size:0.5em">%</span></div><div class="stat-label">China's share of global output</div></div>
+                    <div class="stat"><div class="stat-number">$17B</div><div class="stat-label">Global market value</div></div>
+                    <div class="stat"><div class="stat-number">60+</div><div class="stat-label">Countries producing silk</div></div>
+                </div>
+                <ul class="bullet-list reveal">
+                    <li><strong>Fashion &amp; Luxury:</strong> Silk remains the ultimate luxury textile, central to haute couture collections and bridal wear worldwide.</li>
+                    <li><strong>Biomedicine:</strong> Silk proteins (fibroin) are used in biodegradable sutures, drug delivery systems, and tissue engineering scaffolds.</li>
+                    <li><strong>Sustainability:</strong> Growing demand for ethical, traceable silk is driving innovation in <em>ahimsa</em> (peace) silk production.</li>
+                </ul>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins">Origins</div>
+                <div class="tab tab-making">Making</div>
+                <div class="tab tab-routes">Routes</div>
+                <div class="tab tab-medieval">Medieval</div>
+                <div class="tab tab-today active">Today</div>
+            </div>
+            <div class="slide-num">14 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- === SLIDE 15: CONCLUSION === -->
+    <section class="slide" data-section="today" aria-label="Conclusion">
+        <div class="paper paper-reveal">
+            <div class="holes"><div class="hole"></div><div class="hole"></div><div class="hole"></div></div>
+            <div class="rule"></div>
+            <div class="paper-content">
+                <div class="chapter-label">Conclusion</div>
+                <div class="eyebrow reveal" style="--accent: var(--tab-today);"><div class="eyebrow-dash" style="background: var(--tab-today)"></div>Key Takeaways</div>
+                <h2 class="reveal">The <em>Enduring</em> Thread</h2>
+                <div class="takeaway-grid reveal">
+                    <div class="takeaway" style="border-color: var(--tab-origins);">
+                        <strong>Ancient Power</strong>
+                        <p>Silk was China's greatest strategic asset — a monopoly maintained through law, secrecy, and imperial control for over 2,000 years.</p>
+                    </div>
+                    <div class="takeaway" style="border-color: var(--tab-routes);">
+                        <strong>Global Connection</strong>
+                        <p>The Silk Road was history's first global trade network — carrying not just goods, but religions, languages, diseases, and ideas.</p>
+                    </div>
+                    <div class="takeaway" style="border-color: var(--tab-medieval);">
+                        <strong>Cultural Exchange</strong>
+                        <p>Every civilisation that touched silk — Byzantine, Islamic, Italian, French — transformed and was transformed by it.</p>
+                    </div>
+                    <div class="takeaway" style="border-color: var(--tab-today);">
+                        <strong>Living Legacy</strong>
+                        <p>From luxury fashion to life-saving medical implants, silk remains one of humanity's most remarkable and versatile discoveries.</p>
+                    </div>
+                </div>
+                <p class="title-tagline reveal" style="margin-top: clamp(0.5rem, 1.5vh, 1rem);">From a Chinese empress's garden to the operating theatre — a single thread that changed the world.</p>
+            </div>
+            <div class="tabs">
+                <div class="tab tab-origins">Origins</div>
+                <div class="tab tab-making">Making</div>
+                <div class="tab tab-routes">Routes</div>
+                <div class="tab tab-medieval">Medieval</div>
+                <div class="tab tab-today active">Today</div>
+            </div>
+            <div class="slide-num">15 / 15</div>
+        </div>
+    </section>
+
+
+    <!-- =====================================================================
+         JAVASCRIPT
+         - SlidePresentation: keyboard, touch, scroll, progress, nav dots
+         - IntersectionObserver: triggers .reveal animations
+         - InlineEditor: edit mode with contenteditable + localStorage
+         ===================================================================== -->
+    <script>
+        /* =============================================
+           SLIDE PRESENTATION CONTROLLER
+           Handles all navigation and UI updates.
+           ============================================= */
+        class SlidePresentation {
+            constructor() {
+                this.slides = Array.from(document.querySelectorAll('.slide'));
+                this.total = this.slides.length;
+                this.current = 0;
+                this.isScrolling = false;
+
+                this.progressBar = document.getElementById('progressBar');
+                this.navDotsContainer = document.getElementById('navDots');
+
+                this.setupIntersectionObserver();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.setupScrollNav();
+                this.setupNavDots();
+                this.updateProgress(0);
+            }
+
+            /* --- Intersection Observer ---
+               Adds .visible to slides entering viewport,
+               which triggers CSS reveal animations. */
+            setupIntersectionObserver() {
+                const io = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            const idx = this.slides.indexOf(entry.target);
+                            if (idx !== -1) {
+                                this.current = idx;
+                                this.updateProgress(idx);
+                                this.updateNavDots(idx);
+                            }
+                        }
+                    });
+                }, { threshold: 0.55 });
+
+                this.slides.forEach(slide => io.observe(slide));
+            }
+
+            /* --- Keyboard Navigation ---
+               Arrow keys, Space, Page keys, Home/End */
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    // Skip if user is editing text
+                    if (e.target.getAttribute('contenteditable') === 'true') return;
+
+                    switch(e.key) {
+                        case 'ArrowDown':
+                        case 'ArrowRight':
+                        case ' ':
+                        case 'PageDown':
+                            e.preventDefault();
+                            this.goTo(this.current + 1);
+                            break;
+                        case 'ArrowUp':
+                        case 'ArrowLeft':
+                        case 'PageUp':
+                            e.preventDefault();
+                            this.goTo(this.current - 1);
+                            break;
+                        case 'Home':
+                            e.preventDefault();
+                            this.goTo(0);
+                            break;
+                        case 'End':
+                            e.preventDefault();
+                            this.goTo(this.total - 1);
+                            break;
+                    }
+                });
+            }
+
+            /* --- Touch / Swipe Navigation --- */
+            setupTouchNav() {
+                let startY = 0;
+                let startX = 0;
+                document.addEventListener('touchstart', (e) => {
+                    startY = e.touches[0].clientY;
+                    startX = e.touches[0].clientX;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    const dy = startY - e.changedTouches[0].clientY;
+                    const dx = startX - e.changedTouches[0].clientX;
+                    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 40) {
+                        this.goTo(this.current + (dy > 0 ? 1 : -1));
+                    }
+                }, { passive: true });
+            }
+
+            /* --- Wheel / Scroll Navigation ---
+               Throttled to prevent over-scrolling */
+            setupScrollNav() {
+                let lastWheel = 0;
+                document.addEventListener('wheel', (e) => {
+                    const now = Date.now();
+                    if (now - lastWheel < 800) return;
+                    lastWheel = now;
+                    this.goTo(this.current + (e.deltaY > 0 ? 1 : -1));
+                }, { passive: true });
+            }
+
+            /* --- Navigate to slide index --- */
+            goTo(idx) {
+                const clamped = Math.max(0, Math.min(idx, this.total - 1));
+                this.slides[clamped].scrollIntoView({ behavior: 'smooth' });
+            }
+
+            /* --- Progress Bar --- */
+            updateProgress(idx) {
+                const pct = this.total > 1 ? (idx / (this.total - 1)) * 100 : 0;
+                this.progressBar.style.width = pct + '%';
+            }
+
+            /* --- Navigation Dots ---
+               Generate one dot per slide */
+            setupNavDots() {
+                this.slides.forEach((_, i) => {
+                    const dot = document.createElement('button');
+                    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+                    dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+                    dot.addEventListener('click', () => this.goTo(i));
+                    this.navDotsContainer.appendChild(dot);
+                });
+            }
+
+            updateNavDots(idx) {
+                const dots = this.navDotsContainer.querySelectorAll('.nav-dot');
+                dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+            }
+        }
+
+
+        /* =============================================
+           INLINE EDITOR
+           Hover top-left corner to reveal edit button.
+           Press E key or click button to toggle edit mode.
+           Auto-saves to localStorage on each change.
+           ============================================= */
+        class InlineEditor {
+            constructor() {
+                this.isActive = false;
+                this.storageKey = 'silk-history-edits';
+                this.toggle = document.getElementById('editToggle');
+                this.hotzone = document.getElementById('editHotzone');
+                this.hideTimeout = null;
+
+                this.setupHotzone();
+                this.setupToggleButton();
+                this.setupKeyboardShortcut();
+                this.loadSavedContent();
+            }
+
+            /* Hotzone hover with 400ms grace period */
+            setupHotzone() {
+                this.hotzone.addEventListener('mouseenter', () => {
+                    clearTimeout(this.hideTimeout);
+                    this.toggle.classList.add('show');
+                });
+                this.hotzone.addEventListener('mouseleave', () => {
+                    this.hideTimeout = setTimeout(() => {
+                        if (!this.isActive) this.toggle.classList.remove('show');
+                    }, 400);
+                });
+                this.toggle.addEventListener('mouseenter', () => {
+                    clearTimeout(this.hideTimeout);
+                });
+                this.toggle.addEventListener('mouseleave', () => {
+                    this.hideTimeout = setTimeout(() => {
+                        if (!this.isActive) this.toggle.classList.remove('show');
+                    }, 400);
+                });
+                this.hotzone.addEventListener('click', () => this.toggleEditMode());
+            }
+
+            setupToggleButton() {
+                this.toggle.addEventListener('click', () => this.toggleEditMode());
+            }
+
+            /* E key shortcut */
+            setupKeyboardShortcut() {
+                document.addEventListener('keydown', (e) => {
+                    if ((e.key === 'e' || e.key === 'E') && !e.target.getAttribute('contenteditable')) {
+                        this.toggleEditMode();
+                    }
+                });
+            }
+
+            toggleEditMode() {
+                this.isActive = !this.isActive;
+                document.body.classList.toggle('edit-mode', this.isActive);
+                this.toggle.classList.toggle('active', this.isActive);
+                this.toggle.classList.toggle('show', this.isActive);
+                this.toggle.textContent = this.isActive ? '✓ Done' : '✏ Edit';
+
+                if (this.isActive) {
+                    this.makeEditable();
+                } else {
+                    this.removeEditable();
+                    this.saveContent();
+                    this.showSaveConfirmation();
+                }
+            }
+
+            /* Make all text nodes editable */
+            makeEditable() {
+                const selectors = 'h1, h2, h3, p, li, .eyebrow-dash + *, .stat-number, .stat-label, .chapter-label, .slide-num';
+                // Target text-bearing elements inside paper-content
+                document.querySelectorAll('.paper-content').forEach(content => {
+                    content.querySelectorAll('p, li, h2, .subtitle, .title-tagline').forEach(el => {
+                        if (!el.querySelector('ul') && !el.querySelector('ol')) {
+                            el.setAttribute('contenteditable', 'true');
+                            el.setAttribute('spellcheck', 'false');
+                        }
+                    });
+                });
+            }
+
+            removeEditable() {
+                document.querySelectorAll('[contenteditable]').forEach(el => {
+                    el.removeAttribute('contenteditable');
+                });
+            }
+
+            /* Save all editable content to localStorage */
+            saveContent() {
+                const data = {};
+                document.querySelectorAll('.slide').forEach((slide, i) => {
+                    const content = {};
+                    slide.querySelectorAll('h1, h2, p, li').forEach((el, j) => {
+                        content[j] = el.innerHTML;
+                    });
+                    data[i] = content;
+                });
+                try {
+                    localStorage.setItem(this.storageKey, JSON.stringify(data));
+                } catch(e) {
+                    console.warn('Could not save to localStorage:', e);
+                }
+            }
+
+            /* Restore saved content on load */
+            loadSavedContent() {
+                try {
+                    const saved = localStorage.getItem(this.storageKey);
+                    if (!saved) return;
+                    const data = JSON.parse(saved);
+                    document.querySelectorAll('.slide').forEach((slide, i) => {
+                        if (data[i]) {
+                            slide.querySelectorAll('h1, h2, p, li').forEach((el, j) => {
+                                if (data[i][j] !== undefined) el.innerHTML = data[i][j];
+                            });
+                        }
+                    });
+                } catch(e) {
+                    console.warn('Could not load saved content:', e);
+                }
+            }
+
+            /* Brief save confirmation flash */
+            showSaveConfirmation() {
+                const flash = document.createElement('div');
+                flash.textContent = 'Saved to browser ✓';
+                flash.style.cssText = `
+                    position: fixed; bottom: 2.5rem; left: 50%;
+                    transform: translateX(-50%);
+                    background: var(--bg-page);
+                    border: 1px solid var(--tab-origins);
+                    color: var(--text-primary);
+                    font-family: var(--font-body);
+                    font-size: 0.72rem;
+                    letter-spacing: 0.15em;
+                    text-transform: uppercase;
+                    padding: 0.5em 1.2em;
+                    border-radius: 3px;
+                    z-index: 99999;
+                    opacity: 1;
+                    transition: opacity 0.5s ease;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(flash);
+                setTimeout(() => { flash.style.opacity = '0'; }, 1400);
+                setTimeout(() => flash.remove(), 1900);
+            }
+        }
+
+
+        /* =============================================
+           INITIALISE
+           ============================================= */
+        const presentation = new SlidePresentation();
+        const editor = new InlineEditor();
+
+        /* Mark first slide visible — double rAF ensures the browser has painted
+           the opacity:0 state first, so the CSS transition actually fires. */
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const first = document.querySelectorAll('.slide')[0];
+                if (first) first.classList.add('visible');
+            });
+        });
+    </script>
+
+</body>
+</html>
