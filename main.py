@@ -5,7 +5,7 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -15,7 +15,11 @@ from claude_agent_sdk import (
     AssistantMessage,
     ResultMessage,
     TextBlock,
+    query as agent_query,
 )
+
+from copilotkit import CopilotKitRemoteEndpoint, Action
+from copilotkit.integrations.fastapi import add_fastapi_endpoint
 
 
 # ── In-memory store ───────────────────────────────────────────────────────────
@@ -47,6 +51,42 @@ def sse(data: dict) -> str:
     return f"data: {json.dumps(data)}\n\n"
 
 
+# ── CopilotKit Integration ────────────────────────────────────────────────────
+
+async def _run_claude_agent(task: str) -> str:
+    """Execute a task with Claude Agent SDK and return the final result text."""
+    result_text = ""
+    async for msg in agent_query(prompt=task, options=make_options()):
+        if isinstance(msg, ResultMessage):
+            result_text = msg.result or ""
+    return result_text
+
+
+copilotkit_sdk = CopilotKitRemoteEndpoint(
+    actions=[
+        Action(
+            name="run_claude_agent",
+            description=(
+                "Execute a task using the Claude Agent, which has access to "
+                "file system tools (Read, Write, Edit, Glob, Grep), shell "
+                "commands (Bash), and web tools (WebSearch, WebFetch). Use "
+                "this to delegate coding tasks, file operations, research, "
+                "or any agentic work."
+            ),
+            parameters=[
+                {
+                    "name": "task",
+                    "type": "string",
+                    "description": "The task or question to send to the Claude Agent.",
+                    "required": True,
+                }
+            ],
+            handler=_run_claude_agent,
+        )
+    ]
+)
+
+
 # ── Lifespan: clean up all sessions on shutdown ───────────────────────────────
 
 @asynccontextmanager
@@ -63,6 +103,56 @@ async def lifespan(app: FastAPI):
 # ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(lifespan=lifespan)
+
+# Register CopilotKit remote endpoint at /copilotkit
+# Frontend: <CopilotKit runtimeUrl="http://localhost:8000/copilotkit"> ...
+add_fastapi_endpoint(app, copilotkit_sdk, "/copilotkit")
+
+
+# ── POST /copilotkit/agents/claude-agent  (AG-UI streaming) ───────────────────
+# Used by CopilotKit's useCoAgent("claude-agent") hook for a fully agentic UX.
+# Emits Server-Sent Events following the AG-UI Protocol event schema.
+
+@app.post("/copilotkit/agents/claude-agent")
+async def copilotkit_agent_stream(request: Request):
+    body = await request.json()
+    thread_id: str = body.get("threadId") or str(uuid.uuid4())
+    run_id: str = body.get("runId") or str(uuid.uuid4())
+    msgs: list = body.get("messages", [])
+
+    # Extract the latest user message as the agent prompt
+    prompt = next(
+        (m.get("content", "") for m in reversed(msgs) if m.get("role") == "user"),
+        "",
+    )
+
+    async def stream_ag_ui():
+        yield sse({"type": "RUN_STARTED", "threadId": thread_id, "runId": run_id})
+
+        msg_id = str(uuid.uuid4())
+        yield sse({"type": "TEXT_MESSAGE_START", "messageId": msg_id, "role": "assistant"})
+
+        try:
+            async for message in agent_query(prompt=prompt, options=make_options()):
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if isinstance(block, TextBlock) and block.text:
+                            yield sse({
+                                "type": "TEXT_MESSAGE_CONTENT",
+                                "messageId": msg_id,
+                                "delta": block.text,
+                            })
+        except Exception as exc:
+            yield sse({"type": "RUN_ERROR", "message": str(exc)})
+        finally:
+            yield sse({"type": "TEXT_MESSAGE_END", "messageId": msg_id})
+            yield sse({"type": "RUN_FINISHED", "threadId": thread_id, "runId": run_id})
+
+    return StreamingResponse(
+        stream_ag_ui(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 # ── GET / (health check for readiness probe) ──────────────────────────────────
