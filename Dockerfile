@@ -19,7 +19,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
 # Copy source and skill files
-COPY main.py ./
+COPY main.py db.py ./
 COPY .claude/ ./.claude/
 
 # Give ownership to non-root user 1000 before switching

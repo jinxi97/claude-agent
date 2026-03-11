@@ -1,9 +1,9 @@
 import asyncio
 import json
 import os
-import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+import logging
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
@@ -17,19 +17,22 @@ from claude_agent_sdk import (
     TextBlock,
 )
 
+import db
+
 
 # ── Artifacts directory ───────────────────────────────────────────────────────
 
 ARTIFACTS_DIR = os.path.join(os.getcwd(), "artifacts")
 os.makedirs(ARTIFACTS_DIR, exist_ok=True)
 
+logger = logging.getLogger("claude-agent")
 
-# ── In-memory store ───────────────────────────────────────────────────────────
 
-chats: dict[str, dict] = {}
-messages: dict[str, list] = {}
+# ── In-memory store (runtime only — not persisted) ───────────────────────────
+
 sessions: dict[str, ClaudeSDKClient] = {}
 locks: dict[str, asyncio.Lock] = {}
+active_session_chat_id: str | None = None  # only 1 CLI subprocess at a time
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -40,30 +43,64 @@ You are powered by the frontend-slides skill (https://github.com/zarazhangrui/fr
 When the user asks to create a presentation or slides, always invoke the frontend-slides skill."""
 
 
-def make_options() -> ClaudeAgentOptions:
+def make_options(resume: str | None = None) -> ClaudeAgentOptions:
     return ClaudeAgentOptions(
         model="claude-haiku-4-5",
         cwd=os.getcwd(),
         allowed_tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep",
-                       "WebSearch", "WebFetch", "AskUserQuestion", "Skill"],
+                       "WebSearch", "WebFetch", "Skill"],
         setting_sources=["user", "project"],
         permission_mode="acceptEdits",
         system_prompt=SYSTEM_PROMPT,
+        resume=resume,
     )
 
 
-def now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+def get_lock(chat_id: str) -> asyncio.Lock:
+    """Return (or lazily create) the per-chat asyncio lock."""
+    if chat_id not in locks:
+        locks[chat_id] = asyncio.Lock()
+    return locks[chat_id]
+
+
+async def ensure_session(chat_id: str) -> ClaudeSDKClient:
+    """Return the session for chat_id, creating it lazily.
+    Closes any other active session first — only 1 CLI subprocess at a time."""
+    global active_session_chat_id
+
+    if chat_id in sessions:
+        return sessions[chat_id]
+
+    # Close the previous session to free resources
+    if active_session_chat_id and active_session_chat_id in sessions:
+        old_client = sessions.pop(active_session_chat_id)
+        try:
+            await old_client.__aexit__(None, None, None)
+        except Exception:
+            pass
+        logger.info("closed_session chat_id=%s (replaced by %s)",
+                     active_session_chat_id, chat_id)
+
+    # Resume previous session if this chat had one, otherwise start fresh
+    resume_id = db.get_session_id(chat_id)
+    client = ClaudeSDKClient(options=make_options(resume=resume_id))
+    await client.__aenter__()
+    sessions[chat_id] = client
+    active_session_chat_id = chat_id
+    if resume_id:
+        logger.info("resumed_session chat_id=%s session_id=%s", chat_id, resume_id)
+    return client
 
 
 def sse(data: dict) -> str:
     return f"data: {json.dumps(data)}\n\n"
 
 
-# ── Lifespan: clean up all sessions on shutdown ───────────────────────────────
+# ── Lifespan: init DB on startup, clean up sessions on shutdown ──────────────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    db.init_db()
     yield
     for client in list(sessions.values()):
         try:
@@ -89,7 +126,7 @@ async def health():
 
 @app.get("/api/chats")
 async def list_chats():
-    return list(chats.values())
+    return db.list_chats()
 
 
 # ── POST /api/chats ───────────────────────────────────────────────────────────
@@ -100,40 +137,31 @@ class CreateChatBody(BaseModel):
 
 @app.post("/api/chats", status_code=201)
 async def create_chat(body: CreateChatBody = CreateChatBody()):
-    chat_id = str(uuid.uuid4())
-    chats[chat_id] = {"id": chat_id, "title": body.title or "New Chat", "created_at": now()}
-    messages[chat_id] = []
-    locks[chat_id] = asyncio.Lock()
-
-    # Start a persistent ClaudeSDKClient — each query() call on the same
-    # client automatically continues the session, no manual ID tracking needed.
-    client = ClaudeSDKClient(options=make_options())
-    await client.__aenter__()
-    sessions[chat_id] = client
-
-    return chats[chat_id]
+    return db.create_chat(body.title)
 
 
 # ── GET /api/chats/:id ────────────────────────────────────────────────────────
 
 @app.get("/api/chats/{chat_id}")
 async def get_chat(chat_id: str):
-    if chat_id not in chats:
+    chat = db.get_chat(chat_id)
+    if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
-    return chats[chat_id]
+    return chat
 
 
 # ── DELETE /api/chats/:id ─────────────────────────────────────────────────────
 
 @app.delete("/api/chats/{chat_id}")
 async def delete_chat(chat_id: str):
-    if chat_id not in chats:
+    global active_session_chat_id
+    if not db.delete_chat(chat_id):
         raise HTTPException(status_code=404, detail="Chat not found")
     client = sessions.pop(chat_id, None)
     if client:
         await client.__aexit__(None, None, None)
-    chats.pop(chat_id)
-    messages.pop(chat_id)
+    if active_session_chat_id == chat_id:
+        active_session_chat_id = None
     locks.pop(chat_id, None)
     return {"success": True}
 
@@ -142,9 +170,9 @@ async def delete_chat(chat_id: str):
 
 @app.get("/api/chats/{chat_id}/messages")
 async def get_messages(chat_id: str):
-    if chat_id not in chats:
+    if not db.get_chat(chat_id):
         raise HTTPException(status_code=404, detail="Chat not found")
-    return messages[chat_id]
+    return db.get_messages(chat_id)
 
 
 # ── POST /api/chats/:id/messages  (SSE) ──────────────────────────────────────
@@ -155,34 +183,35 @@ class SendMessageBody(BaseModel):
 
 @app.post("/api/chats/{chat_id}/messages")
 async def send_message(chat_id: str, body: SendMessageBody):
-    if chat_id not in chats:
+    if not db.get_chat(chat_id):
         raise HTTPException(status_code=404, detail="Chat not found")
-    client = sessions.get(chat_id)
-    if not client:
-        raise HTTPException(status_code=404, detail="Session not found")
 
-    messages[chat_id].append({
-        "id": str(uuid.uuid4()),
-        "role": "user",
-        "content": body.content,
-        "created_at": now(),
-    })
+    client = await ensure_session(chat_id)
+
+    # Persist user message
+    db.add_message(chat_id, "user", body.content)
 
     async def stream():
-        assistant_chunks: list[str] = []
+        content_blocks: list[dict] = []
         # Lock prevents a second message being sent while one is in flight.
-        async with locks[chat_id]:
+        async with get_lock(chat_id):
             try:
                 await client.query(body.content)
                 async for msg in client.receive_response():
                     if isinstance(msg, AssistantMessage):
                         for block in msg.content:
                             if isinstance(block, TextBlock):
-                                assistant_chunks.append(block.text)
-                                yield sse({"type": "text", "content": block.text})
+                                event = {"type": "text", "content": block.text}
+                                content_blocks.append(event)
+                                yield sse(event)
                             elif hasattr(block, "name"):
-                                yield sse({"type": "tool", "name": block.name})
+                                event = {"type": "tool", "name": block.name}
+                                if hasattr(block, "input") and block.input:
+                                    event["input"] = block.input
+                                content_blocks.append(event)
+                                yield sse(event)
                     elif isinstance(msg, ResultMessage):
+                        db.set_session_id(chat_id, msg.session_id)
                         cost = (
                             f"${msg.total_cost_usd:.4f}"
                             if msg.total_cost_usd is not None
@@ -192,13 +221,8 @@ async def send_message(chat_id: str, body: SendMessageBody):
             except Exception as e:
                 yield sse({"type": "error", "error": str(e)})
             finally:
-                if assistant_chunks:
-                    messages[chat_id].append({
-                        "id": str(uuid.uuid4()),
-                        "role": "assistant",
-                        "content": "".join(assistant_chunks),
-                        "created_at": now(),
-                    })
+                if content_blocks:
+                    db.add_message(chat_id, "assistant", content_blocks)
 
     return StreamingResponse(
         stream(),

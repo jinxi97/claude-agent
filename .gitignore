@@ -12,3 +12,4 @@ wheels/
 
 # macOS Finder metadata
 .DS_Store
+data/
