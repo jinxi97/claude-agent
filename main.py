@@ -20,9 +20,7 @@ from claude_agent_sdk import (
 
 # ── Artifacts directory ───────────────────────────────────────────────────────
 
-ARTIFACTS_DIR = os.path.join(
-    os.getcwd(), ".claude", "skills", "frontend-slides", "artifacts"
-)
+ARTIFACTS_DIR = os.path.join(os.getcwd(), "artifacts")
 os.makedirs(ARTIFACTS_DIR, exist_ok=True)
 
 
@@ -36,14 +34,21 @@ locks: dict[str, asyncio.Lock] = {}
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+SYSTEM_PROMPT = """You are a slide-making agent, which creates stunning, animation-rich HTML presentations that run entirely in the browser.
+You are powered by the frontend-slides skill (https://github.com/zarazhangrui/frontend-slides) and Funky's agent workspace (https://funky.dev) \
+
+When the user asks to create a presentation or slides, always invoke the frontend-slides skill."""
+
+
 def make_options() -> ClaudeAgentOptions:
     return ClaudeAgentOptions(
         model="claude-haiku-4-5",
         cwd=os.getcwd(),
         allowed_tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep",
                        "WebSearch", "WebFetch", "AskUserQuestion", "Skill"],
-        setting_sources=["project"],
+        setting_sources=["user", "project"],
         permission_mode="acceptEdits",
+        system_prompt=SYSTEM_PROMPT,
     )
 
 

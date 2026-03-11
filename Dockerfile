@@ -5,15 +5,14 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app
 
-# Install OS tools + Node.js (required by the Claude Agent SDK to spawn the Claude CLI)
+# Install OS tools + Node.js 20 (apt ships an old version; Claude Code requires 18+)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        curl \
-        git \
-        nodejs \
-        npm && \
-    npm install -g @anthropic-ai/claude-code && \
+    apt-get install -y --no-install-recommends curl git && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g @anthropic-ai/claude-code@2.1.72
 
 # Install Python dependencies (cached layer, runs as root)
 COPY pyproject.toml uv.lock ./
