@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 from claude_agent_sdk import (
@@ -16,6 +16,14 @@ from claude_agent_sdk import (
     ResultMessage,
     TextBlock,
 )
+
+
+# ── Artifacts directory ───────────────────────────────────────────────────────
+
+ARTIFACTS_DIR = os.path.join(
+    os.getcwd(), ".claude", "skills", "frontend-slides", "artifacts"
+)
+os.makedirs(ARTIFACTS_DIR, exist_ok=True)
 
 
 # ── In-memory store ───────────────────────────────────────────────────────────
@@ -192,6 +200,35 @@ async def send_message(chat_id: str, body: SendMessageBody):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+# ── GET /api/artifacts/file/{filename} ───────────────────────────────────────
+# Single endpoint to serve any artifact file — workspace ID in headers lets
+# the router forward this to the correct Pod, just like every other API call.
+
+@app.get("/api/artifacts/file/{filename:path}")
+async def serve_artifact_file(filename: str):
+    file_path = os.path.join(ARTIFACTS_DIR, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path, media_type="text/html")
+
+
+# ── GET /api/artifacts ────────────────────────────────────────────────────────
+# Poll this at any phase — lists all HTML files recursively, including previews.
+
+@app.get("/api/artifacts")
+async def get_artifacts():
+    files = []
+    for dirpath, _, filenames in os.walk(ARTIFACTS_DIR):
+        for filename in filenames:
+            if filename.endswith(".html"):
+                rel_path = os.path.relpath(os.path.join(dirpath, filename), ARTIFACTS_DIR)
+                files.append({
+                    "name": filename,
+                    "path": rel_path,
+                })
+    return {"artifacts": files}
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

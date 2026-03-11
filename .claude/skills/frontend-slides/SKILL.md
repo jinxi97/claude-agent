@@ -152,9 +152,7 @@ Based on mood, generate 3 distinct single-slide HTML previews showing typography
 | Calm/Focused | Notebook Tabs, Paper & Ink, Swiss Modern |
 | Inspired/Moved | Dark Botanical, Vintage Editorial, Pastel Geometry |
 
-Save previews to `.claude-design/slide-previews/` (style-a.html, style-b.html, style-c.html). Each should be self-contained, ~50-100 lines, showing one animated title slide.
-
-Open each preview automatically for the user.
+Save previews to `artifacts/previews/` (style-a.html, style-b.html, style-c.html). Each should be self-contained, ~50-100 lines, showing one animated title slide.
 
 ### Step 2.3: User Picks
 
@@ -175,6 +173,8 @@ If images were provided, the slide outline already incorporates them from Step 1
 - [html-template.md](html-template.md) — HTML architecture and JS features
 - [viewport-base.css](viewport-base.css) — Mandatory CSS (include in full)
 - [animation-patterns.md](animation-patterns.md) — Animation reference for the chosen feeling
+
+**Output:** Save the final presentation to `artifacts/` using a short descriptive kebab-case filename based on the topic (e.g. `artifacts/intro-to-react.html`, `artifacts/q4-pitch.html`).
 
 **Key requirements:**
 - Single self-contained HTML file, all CSS/JS inline
@@ -198,10 +198,9 @@ When converting PowerPoint files:
 
 ## Phase 5: Delivery
 
-1. **Clean up** — Delete `.claude-design/slide-previews/` if it exists
-2. **Open** — Use `open [filename].html` to launch in browser
-3. **Summarize** — Tell the user:
-   - File location, style name, slide count
+1. **Clean up** — Delete `artifacts/previews/` if it exists
+2. **Summarize** — Tell the user:
+   - File name, style name, slide count
    - Navigation: Arrow keys, Space, scroll/swipe, click nav dots
    - How to customize: `:root` CSS variables for colors, font link for typography, `.reveal` class for animations
    - If inline editing was enabled: Hover top-left corner or press E to enter edit mode, click any text to edit, Ctrl+S to save
