@@ -8,7 +8,8 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 
 
-DB_PATH = os.path.join(os.getcwd(), "data", "store.db")
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(_PROJECT_ROOT, "data", "store.db")
 
 
 # ── Connection helper ─────────────────────────────────────────────────────────
@@ -55,6 +56,15 @@ def init_db():
             CREATE TABLE IF NOT EXISTS session_ids (
                 chat_id TEXT PRIMARY KEY,
                 session_id TEXT NOT NULL,
+                FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS published_files (
+                path TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                chat_id TEXT NOT NULL,
+                published_at TEXT NOT NULL,
                 FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
             )
         """)
@@ -145,3 +155,32 @@ def set_session_id(chat_id: str, session_id: str) -> None:
             "INSERT OR REPLACE INTO session_ids (chat_id, session_id) VALUES (?, ?)",
             (chat_id, session_id),
         )
+
+
+# ── Published Files ──────────────────────────────────────────────────────────
+
+def publish_file(path: str, chat_id: str) -> None:
+    """Register a file as published."""
+    with get_db() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO published_files (path, name, chat_id, published_at) "
+            "VALUES (?, ?, ?, ?)",
+            (path, os.path.basename(path), chat_id, _now()),
+        )
+
+
+def remove_file(path: str) -> None:
+    """Unregister a published file."""
+    with get_db() as conn:
+        conn.execute("DELETE FROM published_files WHERE path = ?", (path,))
+
+
+def list_published_files(chat_id: str) -> list[dict]:
+    """List all published files for a chat."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT path, name, published_at FROM published_files "
+            "WHERE chat_id = ? ORDER BY published_at",
+            (chat_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]

@@ -15,4 +15,4 @@ substitutions:
   _LOCATION: us-central1
   _REPO: agent-sandbox
   _IMAGE: claude-agent-sandbox
-  _TAG: v8
+  _TAG: v11

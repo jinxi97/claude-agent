@@ -2,7 +2,6 @@ import asyncio
 import json
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 import logging
 
 from fastapi import FastAPI, HTTPException
@@ -21,11 +20,6 @@ from claude_agent_sdk import (
 
 import db
 
-
-# ── Artifacts directory ───────────────────────────────────────────────────────
-
-ARTIFACTS_DIR = os.path.join(os.getcwd(), "artifacts")
-os.makedirs(ARTIFACTS_DIR, exist_ok=True)
 
 logger = logging.getLogger("claude-agent")
 
@@ -114,6 +108,11 @@ async def ensure_session(chat_id: str) -> ClaudeSDKClient:
                      active_session_chat_id, chat_id)
 
     # Resume previous session if this chat had one, otherwise start fresh
+    # Set CHAT_ID so publish.py (called via Bash by the agent) knows which chat owns the file
+    os.environ["CHAT_ID"] = chat_id
+    # Set WORKSPACE_ROOT so the skill always writes artifacts to the project root
+    os.environ["WORKSPACE_ROOT"] = WORKSPACE_ROOT
+
     resume_id = db.get_session_id(chat_id)
     client = ClaudeSDKClient(options=make_options(chat_id, resume=resume_id))
     await client.__aenter__()
@@ -145,6 +144,7 @@ async def lifespan(app: FastAPI):
 # ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(lifespan=lifespan)
+WORKSPACE_ROOT = os.path.abspath(os.getcwd())
 
 
 # ── GET / (health check for readiness probe) ──────────────────────────────────
@@ -278,33 +278,33 @@ async def answer_question(chat_id: str, body: AnswerBody):
     return {"success": True}
 
 
-# ── GET /api/artifacts/file/{filename} ───────────────────────────────────────
-# Single endpoint to serve any artifact file — workspace ID in headers lets
-# the router forward this to the correct Pod, just like every other API call.
+# ── GET /api/chats/:id/artifacts ──────────────────────────────────────────────
 
-@app.get("/api/artifacts/file/{filename:path}")
-async def serve_artifact_file(filename: str):
-    file_path = os.path.join(ARTIFACTS_DIR, filename)
-    if not os.path.exists(file_path):
+@app.get("/api/chats/{chat_id}/artifacts")
+async def list_artifacts(chat_id: str):
+    if not db.get_chat(chat_id):
+        raise HTTPException(status_code=404, detail="Chat not found")
+    return db.list_published_files(chat_id)
+
+
+# ── GET /api/files/download/{file_path} ──────────────────────────────────────
+# Download any file path under the workspace as an attachment.
+
+@app.get("/api/files/download/{file_path:path}")
+async def download_file(file_path: str):
+    requested_path = os.path.abspath(os.path.join(WORKSPACE_ROOT, file_path))
+
+    if os.path.commonpath([WORKSPACE_ROOT, requested_path]) != WORKSPACE_ROOT:
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(file_path, media_type="text/html")
 
+    if not os.path.isfile(requested_path):
+        raise HTTPException(status_code=404, detail="File not found")
 
-# ── GET /api/artifacts ────────────────────────────────────────────────────────
-# Poll this at any phase — lists all HTML files recursively, including previews.
-
-@app.get("/api/artifacts")
-async def get_artifacts():
-    files = []
-    for dirpath, _, filenames in os.walk(ARTIFACTS_DIR):
-        for filename in filenames:
-            if filename.endswith(".html"):
-                rel_path = os.path.relpath(os.path.join(dirpath, filename), ARTIFACTS_DIR)
-                files.append({
-                    "name": filename,
-                    "path": rel_path,
-                })
-    return {"artifacts": files}
+    return FileResponse(
+        requested_path,
+        media_type="application/octet-stream",
+        filename=os.path.basename(requested_path),
+    )
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

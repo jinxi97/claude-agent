@@ -7,6 +7,21 @@ description: Create stunning, animation-rich HTML presentations from scratch or 
 
 Create zero-dependency, animation-rich HTML presentations that run entirely in the browser.
 
+## Important: File Paths (NON-NEGOTIABLE)
+
+**Step 1 — Before doing ANYTHING else, resolve the workspace root:**
+```bash
+echo $WORKSPACE_ROOT
+```
+Save the output (e.g. `/app` or `/Users/me/project`) and use it as a literal prefix for ALL paths below.
+
+**Step 2 — ALL file operations MUST use that absolute path as a prefix:**
+- **Write tool `file_path`**: Use the resolved path, e.g. `/app/artifacts/my-slides.html` — NOT `artifacts/my-slides.html` or any path under `.claude/skills/`.
+- **Bash / publish.py**: `python $WORKSPACE_ROOT/publish.py add artifacts/my-slides.html`
+- **Delete**: `rm -rf $WORKSPACE_ROOT/artifacts/previews/`
+
+**NEVER write files into the `.claude/skills/` directory tree. Artifacts MUST go into `<WORKSPACE_ROOT>/artifacts/`.**
+
 ## Core Principles
 
 1. **Zero Dependencies** — Single HTML files with inline CSS/JS. No npm, no build tools.
@@ -152,7 +167,12 @@ Based on mood, generate 3 distinct single-slide HTML previews showing typography
 | Calm/Focused | Notebook Tabs, Paper & Ink, Swiss Modern |
 | Inspired/Moved | Dark Botanical, Vintage Editorial, Pastel Geometry |
 
-Save previews to `artifacts/previews/` (style-a.html, style-b.html, style-c.html). Each should be self-contained, ~50-100 lines, showing one animated title slide.
+Save previews to `$WORKSPACE_ROOT/artifacts/previews/` (style-a.html, style-b.html, style-c.html). Each should be self-contained, ~50-100 lines, showing one animated title slide.
+
+**After writing each preview, publish it:**
+```bash
+python $WORKSPACE_ROOT/publish.py add artifacts/previews/style-a.html
+```
 
 ### Step 2.3: User Picks
 
@@ -174,7 +194,12 @@ If images were provided, the slide outline already incorporates them from Step 1
 - [viewport-base.css](viewport-base.css) — Mandatory CSS (include in full)
 - [animation-patterns.md](animation-patterns.md) — Animation reference for the chosen feeling
 
-**Output:** Save the final presentation to `artifacts/` using a short descriptive kebab-case filename based on the topic (e.g. `artifacts/intro-to-react.html`, `artifacts/q4-pitch.html`).
+**Output:** Save the final presentation to `$WORKSPACE_ROOT/artifacts/` using a short descriptive kebab-case filename based on the topic (e.g. `$WORKSPACE_ROOT/artifacts/intro-to-react.html`, `$WORKSPACE_ROOT/artifacts/q4-pitch.html`).
+
+**After writing the final presentation, publish it:**
+```bash
+python $WORKSPACE_ROOT/publish.py add artifacts/<filename>.html
+```
 
 **Key requirements:**
 - Single self-contained HTML file, all CSS/JS inline
@@ -198,7 +223,13 @@ When converting PowerPoint files:
 
 ## Phase 5: Delivery
 
-1. **Clean up** — Delete `artifacts/previews/` if it exists
+1. **Clean up** — Unpublish each preview file, then delete the directory:
+   ```bash
+   python $WORKSPACE_ROOT/publish.py remove artifacts/previews/style-a.html
+   python $WORKSPACE_ROOT/publish.py remove artifacts/previews/style-b.html
+   python $WORKSPACE_ROOT/publish.py remove artifacts/previews/style-c.html
+   rm -rf $WORKSPACE_ROOT/artifacts/previews/
+   ```
 2. **Summarize** — Tell the user:
    - File name, style name, slide count
    - Navigation: Arrow keys, Space, scroll/swipe, click nav dots
