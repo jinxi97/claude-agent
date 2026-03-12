@@ -15,6 +15,8 @@ from claude_agent_sdk import (
     AssistantMessage,
     ResultMessage,
     TextBlock,
+    PermissionResultAllow,
+    ToolPermissionContext,
 )
 
 import db
@@ -33,6 +35,7 @@ logger = logging.getLogger("claude-agent")
 sessions: dict[str, ClaudeSDKClient] = {}
 locks: dict[str, asyncio.Lock] = {}
 active_session_chat_id: str | None = None  # only 1 CLI subprocess at a time
+pending_answers: dict[str, asyncio.Future] = {}  # chat_id → Future for AskUserQuestion
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -43,7 +46,35 @@ You are powered by the frontend-slides skill (https://github.com/zarazhangrui/fr
 When the user asks to create a presentation or slides, always invoke the frontend-slides skill."""
 
 
-def make_options(resume: str | None = None) -> ClaudeAgentOptions:
+def make_can_use_tool(chat_id: str):
+    """Return an async can_use_tool callback bound to a specific chat."""
+
+    async def can_use_tool(
+        tool_name: str,
+        tool_input: dict,
+        context: ToolPermissionContext,
+    ) -> PermissionResultAllow:
+        if tool_name == "AskUserQuestion":
+            # Create a future that blocks until the user answers via POST /answer
+            loop = asyncio.get_running_loop()
+            future: asyncio.Future = loop.create_future()
+            pending_answers[chat_id] = future
+
+            try:
+                answers = await future  # dict[str, str]  question → label
+            finally:
+                pending_answers.pop(chat_id, None)
+
+            # Merge answers into the original tool input
+            updated = {**tool_input, "answers": answers}
+            return PermissionResultAllow(updated_input=updated)
+
+        return PermissionResultAllow(updated_input=tool_input)
+
+    return can_use_tool
+
+
+def make_options(chat_id: str, resume: str | None = None) -> ClaudeAgentOptions:
     return ClaudeAgentOptions(
         model="claude-haiku-4-5",
         cwd=os.getcwd(),
@@ -53,6 +84,7 @@ def make_options(resume: str | None = None) -> ClaudeAgentOptions:
         permission_mode="acceptEdits",
         system_prompt=SYSTEM_PROMPT,
         resume=resume,
+        can_use_tool=make_can_use_tool(chat_id),
     )
 
 
@@ -83,7 +115,7 @@ async def ensure_session(chat_id: str) -> ClaudeSDKClient:
 
     # Resume previous session if this chat had one, otherwise start fresh
     resume_id = db.get_session_id(chat_id)
-    client = ClaudeSDKClient(options=make_options(resume=resume_id))
+    client = ClaudeSDKClient(options=make_options(chat_id, resume=resume_id))
     await client.__aenter__()
     sessions[chat_id] = client
     active_session_chat_id = chat_id
@@ -229,6 +261,21 @@ async def send_message(chat_id: str, body: SendMessageBody):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+# ── POST /api/chats/:id/answer  (unblock AskUserQuestion) ────────────────────
+
+class AnswerBody(BaseModel):
+    answers: dict[str, str]  # question text → selected option label
+
+
+@app.post("/api/chats/{chat_id}/answer")
+async def answer_question(chat_id: str, body: AnswerBody):
+    future = pending_answers.get(chat_id)
+    if not future:
+        raise HTTPException(status_code=404, detail="No pending question for this chat")
+    future.set_result(body.answers)
+    return {"success": True}
 
 
 # ── GET /api/artifacts/file/{filename} ───────────────────────────────────────
